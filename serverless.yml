@@ -1,0 +1,64 @@
+service: big-mouth
+
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-offline
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  iamRoleStatements:
+    - Effect: Allow
+      Action: dynamodb:scan
+      Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/restaurants
+    - Effect: Allow 
+      Action: execute-api:Invoke
+      Resource: arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/*/GET/restaurants
+
+
+functions:
+  get-index:
+    handler: functions/get-index.handler
+    events:
+    - http:
+        path: /
+        method: get  
+    environment:
+      restaurants_api: https://1kkc3zmmvf.execute-api.us-east-1.amazonaws.com/dev/restaurants
+      cognito_user_pool_id: us-east-1_kUaGlvbW2
+      cognito_client_id: 1ujbc6u8ddu6g7upvag7mo4att
+      
+  get-restaurants:
+    handler: functions/get-restaurants.handler
+    events:
+      - http:
+          path: /restaurants/
+          method: get
+          authorizer: aws_iam
+    environment:
+      restaurants_table: restaurants        
+
+  search-restaurants:
+    handler:  functions/search-restaurants.handler
+    events:
+      - http:
+          path: /restaurants/search
+          method: post
+    environment:
+      restaurants_table: restaurants        
+
+resources:
+  Resources:
+    restaurantsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: restaurants
+        AttributeDefinitions:
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: name
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
