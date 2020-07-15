@@ -6,9 +6,8 @@ const Promise = require("bluebird");
 const fs = Promise.promisifyAll(require("fs"));
 const Mustache = require('mustache');
 const http = require('superagent-promise')(require('superagent'), Promise);
-const aws4 = require('aws4');
+const aws4 = require('../lib/aws4');
 const URL = require('url');
-const awscred = Promise.promisifyAll(require('../lib/awscred'));
 
 const awsRegion = process.env.AWS_REGION;
 const cognitoUserPoolId = process.env.cognito_user_pool_id;
@@ -33,10 +32,6 @@ function* getRestaurants() {
     path: url.pathname
   }
 
-  if (cred.sessionToken) {
-    process.env.AWS_SESSION_TOKEN = cred.sessionToken;
-  }
-
   aws4.sign(opts);
 
   let httpReq = http
@@ -53,6 +48,7 @@ function* getRestaurants() {
 }
 
 module.exports.handler = co.wrap(function* (event, context, callback)  {
+  yield aws4.init();
   let template = yield loadHtml();
   let restaurants = yield getRestaurants();
   let dayOfWeek = days[new Date().getDay()];

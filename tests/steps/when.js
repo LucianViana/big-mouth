@@ -6,7 +6,7 @@ const _       = require('lodash');
 const co      = require('co');
 const Promise = require("bluebird");
 const http    = require('superagent-promise')(require('superagent'), Promise);
-const aws4    = require('aws4');
+const aws4    = require('../../lib/aws4');
 const URL     = require('url');
 const mode    = process.env.TEST_MODE;
 
@@ -44,8 +44,6 @@ let signHttpRequest = (url, httpReq) => {
 }
 
 let viaHttp = co.wrap(function* (relPath, method, opts) {
-  //TODO: FOI FIXO A URL PRINCIPAL OLHAR
-  //let root = "https://1kkc3zmmvf.execute-api.us-east-1.amazonaws.com/dev"; 
   let root = process.env.TEST_ROOT;
   let url = `${root}/${relPath}`;
   console.log(`invoking via HTTP ${method} ${url}`);
