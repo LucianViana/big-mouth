@@ -11,12 +11,12 @@ describe(`When we invoke the GET /restaurants endpoint`, co.wrap(function* () {
   }));
 
   it(`Should return an array of 8 restaurants`, co.wrap(function* () {
-    this.timeout(10000);
+    //this.timeout(10000);
 
     let res = yield when.we_invoke_get_restaurants();
 
     expect(res.statusCode).to.equal(200);
-    expect(res.body.Items).to.have.lengthOf(8);
+    expect(res.body).to.have.lengthOf(8);
 
     for (let restaurant of res.body) {
       expect(restaurant).to.have.property('name');
