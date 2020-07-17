@@ -14,7 +14,15 @@ provider:
     - Effect: Allow 
       Action: execute-api:Invoke
       Resource: arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/*/GET/restaurants
-
+    - Effect: Allow
+      Action: kinesis:PutRecord
+      Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+    - Effect: Allow
+      Action: sns:Publish
+      Resource: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
+    - Effect: Allow
+      Action: sns:Publish
+      Resource: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
 
 functions:
   get-index:
@@ -25,6 +33,7 @@ functions:
         method: get  
     environment:
       restaurants_api: https://1kkc3zmmvf.execute-api.us-east-1.amazonaws.com/dev/restaurants
+      orders_api: https://1kkc3zmmvf.execute-api.us-east-1.amazonaws.com/dev/orders
       cognito_user_pool_id: us-east-1_kUaGlvbW2 
       cognito_client_id: 1ujbc6u8ddu6g7upvag7mo4att
       
@@ -45,10 +54,56 @@ functions:
           path: /restaurants/search
           method: post
           authorizer: 
-            arn: arn:aws:cognito-idp:us-east-1:505529903636:userpool/us-east-1_kUaGlvbW2
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_kUaGlvbW2
     environment:
       restaurants_table: restaurants        
 
+  place-order:
+    handler: functions/place-order.handler
+    events:
+      - http:
+          path: /orders
+          method: post
+          authorizer:
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_kUaGlvbW2
+    environment:
+      order_events_stream: order-events
+
+  notify-restaurant:
+    handler: functions/notify-restaurant.handler
+    events:
+      - stream:
+          arn: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+    environment:
+      order_events_stream: order-events
+      restaurant_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
+
+  accept-order:
+    handler: functions/accept-order.handler
+    events:
+      - http:
+          path: /orders/accept
+          method: post
+    environment:
+      order_events_stream: order-events
+
+  notify-user:
+    handler: functions/notify-user.handler
+    events:
+      - stream:
+          arn: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+    environment:
+      order_events_stream: order-events
+      user_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
+
+  fulfill-order:
+    handler: functions/fulfill-order.handler
+    events:
+      - http:
+          path: /orders/complete
+          method: post
+    environment:
+      order_events_stream: order-events
 
 resources:
   Resources:
@@ -65,3 +120,21 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+
+    orderEventsStream:
+      Type: AWS::Kinesis::Stream
+      Properties: 
+        Name: order-events
+        ShardCount: 1          
+
+    restaurantNotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties: 
+        DisplayName: restaurant-notification
+        TopicName: restaurant-notification
+
+    userNotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties: 
+        DisplayName: user-notification
+        TopicName: user-notification        
