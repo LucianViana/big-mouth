@@ -2,40 +2,31 @@ service: big-mouth
 
 plugins:
   - serverless-pseudo-parameters
-  - serverless-offline
+  - serverless-sam
+  - serverless-iam-roles-per-function
 
 provider:
   name: aws
-  runtime: nodejs12.x
-  iamRoleStatements:
-    - Effect: Allow
-      Action: dynamodb:scan
-      Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/restaurants
-    - Effect: Allow 
-      Action: execute-api:Invoke
-      Resource: arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/*/GET/restaurants
-    - Effect: Allow
-      Action: kinesis:PutRecord
-      Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
-    - Effect: Allow
-      Action: sns:Publish
-      Resource:
-        - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
-        - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification-retry
-        - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
+  runtime: nodejs6.10
+
 functions:
   get-index:
     handler: functions/get-index.handler
     events:
-    - http:
-        path: /
-        method: get  
+      - http:
+          path: /
+          method: get
     environment:
-      restaurants_api: https://1kkc3zmmvf.execute-api.us-east-1.amazonaws.com/dev/restaurants
-      orders_api: https://1kkc3zmmvf.execute-api.us-east-1.amazonaws.com/dev/orders
-      cognito_user_pool_id: us-east-1_kUaGlvbW2 
-      cognito_client_id: 1ujbc6u8ddu6g7upvag7mo4att
-      
+      restaurants_api: https://ksnkhvytol.execute-api.us-east-1.amazonaws.com/dev/restaurants
+      orders_api: https://ksnkhvytol.execute-api.us-east-1.amazonaws.com/dev/orders
+      cognito_user_pool_id: us-east-1_DfuAwa0vB
+      cognito_client_id: 1tf8pb1s1n53p7u608e7ic5ih8
+    #iamRoleStatementsInherit: true #optionally inherit shared permissions
+    iamRoleStatements:
+      - Effect: Allow
+        Action: execute-api:Invoke
+        Resource: arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/*/GET/restaurants
+
   get-restaurants:
     handler: functions/get-restaurants.handler
     events:
@@ -44,18 +35,26 @@ functions:
           method: get
           authorizer: aws_iam
     environment:
-      restaurants_table: restaurants        
+      restaurants_table: restaurants
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:scan
+        Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/restaurants
 
   search-restaurants:
-    handler:  functions/search-restaurants.handler
+    handler: functions/search-restaurants.handler
     events:
       - http:
           path: /restaurants/search
           method: post
-          authorizer: 
-            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_kUaGlvbW2
+          authorizer:
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_DfuAwa0vB
     environment:
-      restaurants_table: restaurants        
+      restaurants_table: restaurants
+    iamRoleStatements:
+      - Effect: Allow
+        Action: dynamodb:scan
+        Resource: arn:aws:dynamodb:#{AWS::Region}:#{AWS::AccountId}:table/restaurants
 
   place-order:
     handler: functions/place-order.handler
@@ -64,9 +63,13 @@ functions:
           path: /orders
           method: post
           authorizer:
-            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_kUaGlvbW2
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_DfuAwa0vB
     environment:
       order_events_stream: order-events
+    iamRoleStatements:
+      - Effect: Allow
+        Action: kinesis:PutRecord
+        Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
 
   notify-restaurant:
     handler: functions/notify-restaurant.handler
@@ -77,7 +80,16 @@ functions:
       order_events_stream: order-events
       restaurant_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
       restaurant_notification_retry_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification-retry
-
+    iamRoleStatements:
+      - Effect: Allow
+        Action: kinesis:PutRecord
+        Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+      - Effect: Allow
+        Action: sns:Publish
+        Resource:
+          - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
+          - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification-retry
+      
   retry-notify-restaurant:
     handler: functions/retry-notify-restaurant.handler
     events:
@@ -86,7 +98,15 @@ functions:
       order_events_stream: order-events
       restaurant_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
     onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification-dlq
-
+    iamRoleStatements:
+      - Effect: Allow
+        Action: kinesis:PutRecord
+        Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+      - Effect: Allow
+        Action: sns:Publish
+        Resource:
+          - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:restaurant-notification
+    
   accept-order:
     handler: functions/accept-order.handler
     events:
@@ -95,6 +115,10 @@ functions:
           method: post
     environment:
       order_events_stream: order-events
+    iamRoleStatements:
+      - Effect: Allow
+        Action: kinesis:PutRecord
+        Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
 
   notify-user:
     handler: functions/notify-user.handler
@@ -104,6 +128,33 @@ functions:
     environment:
       order_events_stream: order-events
       user_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
+      user_notification_retry_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification-retry
+    iamRoleStatements:
+      - Effect: Allow
+        Action: kinesis:PutRecord
+        Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+      - Effect: Allow
+        Action: sns:Publish
+        Resource:
+          - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
+          - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification-retry
+
+  retry-notify-user:
+    handler: functions/retry-notify-user.handler
+    events:
+      - sns: user-notification-retry
+    environment:
+      order_events_stream: order-events
+      user_notification_topic: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
+    onError: arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification-dlq
+    iamRoleStatements:
+      - Effect: Allow
+        Action: kinesis:PutRecord
+        Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+      - Effect: Allow
+        Action: sns:Publish
+        Resource:
+          - arn:aws:sns:#{AWS::Region}:#{AWS::AccountId}:user-notification
 
   fulfill-order:
     handler: functions/fulfill-order.handler
@@ -113,6 +164,10 @@ functions:
           method: post
     environment:
       order_events_stream: order-events
+    iamRoleStatements:
+      - Effect: Allow
+        Action: kinesis:PutRecord
+        Resource: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
 
 resources:
   Resources:
@@ -134,7 +189,7 @@ resources:
       Type: AWS::Kinesis::Stream
       Properties: 
         Name: order-events
-        ShardCount: 1          
+        ShardCount: 1
 
     restaurantNotificationTopic:
       Type: AWS::SNS::Topic
@@ -142,14 +197,20 @@ resources:
         DisplayName: restaurant-notification
         TopicName: restaurant-notification
 
+    userNotificationTopic:
+      Type: AWS::SNS::Topic
+      Properties: 
+        DisplayName: user-notification
+        TopicName: user-notification
+
     restaurantNotificationDLQTopic:
       Type: AWS::SNS::Topic
       Properties: 
         DisplayName: restaurant-notification-dlq
         TopicName: restaurant-notification-dlq
 
-    userNotificationTopic:
+    userNotificationDLQTopic:
       Type: AWS::SNS::Topic
       Properties: 
-        DisplayName: user-notification
-        TopicName: user-notification        
+        DisplayName: user-notification-dlq
+        TopicName: user-notification-dlq
