@@ -62,8 +62,9 @@ let viaHttp = co.wrap(function* (relPath, method, opts) {
 
     let authHeader = _.get(opts, "auth");
     if (authHeader) {
-       httpReq.set('Authorization', authHeader);
+      httpReq.set('Authorization', authHeader);
     }
+    
     let res = yield httpReq;
     return respondFrom(res);
   } catch (err) {
@@ -121,7 +122,7 @@ let we_invoke_get_restaurants = co.wrap(function* () {
 
 let we_invoke_search_restaurants = co.wrap(function* (user, theme) {
   let body = JSON.stringify({ theme });
-  let auth = user.IdToken;
+  let auth = user.idToken;
 
   let res = 
     mode === 'handler'
@@ -136,8 +137,3 @@ module.exports = {
   we_invoke_get_restaurants,
   we_invoke_search_restaurants
 };
-
-
-
-
-

@@ -4,11 +4,11 @@ const co      = require('co');
 const AWS     = require('aws-sdk');
 AWS.config.region = 'us-east-1';
 const cognito = new AWS.CognitoIdentityServiceProvider();
-//TODO: NAO FUNCIONOU A PASSAGEM AUTOMATICA DE USERNAME E PASSWORD ESTUDAR E NAO LIBERAR PARA PRODUCAO NO GIT PARA NAO EXIBIR A SENHA
+
 let an_authenticated_user = function* (user) {
   let req = {
     UserPoolId: process.env.cognito_user_pool_id,
-    Username: "root"//user.username
+    Username: user.username
   };
   yield cognito.adminDeleteUser(req).promise();
   

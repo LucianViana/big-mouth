@@ -34,14 +34,14 @@ let an_authenticated_user = function* () {
   yield cognito.adminCreateUser(createReq).promise();
 
   console.log(`[${username}] - user is created`);
-  //TODO: NAO FUNCIONOU A PASSAGEM AUTOMATICA DE USERNAME E PASSWORD ESTUDAR E NAO LIBERAR PARA PRODUCAO NO GIT PARA NAO EXIBIR A SENHA
+  
   let req = {
     AuthFlow        : 'ADMIN_NO_SRP_AUTH',
     UserPoolId      : userpoolId,
     ClientId        : clientId,
     AuthParameters  : {
-      USERNAME: "root", //username,    
-      PASSWORD: "Aardvark4965@"//password
+      USERNAME: username,    
+      PASSWORD: password
     }
   };
   let resp = yield cognito.adminInitiateAuth(req).promise();

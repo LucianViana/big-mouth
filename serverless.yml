@@ -5,9 +5,17 @@ plugins:
   - serverless-sam
   - serverless-iam-roles-per-function
 
+custom: 
+  stage: ${opt:stage, self:provider.stage}
+  logLevel:
+    prod: WARN
+    default: DEBUG
+
 provider:
   name: aws
-  runtime: nodejs6.10
+  runtime: nodejs12.x
+  environment:
+    log_level: ${self:custom.logLevel.${self:custom.stage}, self:custom.logLevel.default}
 
 functions:
   get-index:
@@ -17,10 +25,10 @@ functions:
           path: /
           method: get
     environment:
-      restaurants_api: https://ksnkhvytol.execute-api.us-east-1.amazonaws.com/dev/restaurants
-      orders_api: https://ksnkhvytol.execute-api.us-east-1.amazonaws.com/dev/orders
-      cognito_user_pool_id: us-east-1_DfuAwa0vB
-      cognito_client_id: 1tf8pb1s1n53p7u608e7ic5ih8
+      restaurants_api: https://jd7pkw0jq1.execute-api.us-east-1.amazonaws.com/dev/restaurants
+      orders_api: https://jd7pkw0jq1.execute-api.us-east-1.amazonaws.com/dev/orders
+      cognito_user_pool_id: us-east-1_92XbyMCWD
+      cognito_client_id: 7br7vfeet8pqlc1lqgj34j1g6l
     #iamRoleStatementsInherit: true #optionally inherit shared permissions
     iamRoleStatements:
       - Effect: Allow
@@ -47,8 +55,10 @@ functions:
       - http:
           path: /restaurants/search
           method: post
-          authorizer:
-            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_DfuAwa0vB
+          # TODO: FOI OMITIDO PARA NAO PEDIR SENHA AO FAZER A CONSULTA
+          # authorizer:
+          #   arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_92XbyMCWD
+            
     environment:
       restaurants_table: restaurants
     iamRoleStatements:
@@ -63,7 +73,7 @@ functions:
           path: /orders
           method: post
           authorizer:
-            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_DfuAwa0vB
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_92XbyMCWD
     environment:
       order_events_stream: order-events
     iamRoleStatements:

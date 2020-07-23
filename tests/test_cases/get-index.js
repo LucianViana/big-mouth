@@ -12,8 +12,6 @@ describe(`When we invoke the GET / endpoint`, co.wrap(function* () {
   }));
 
   it(`Should return the index page with 8 restaurants`, co.wrap(function* () {
-    this.timeout(10000);
-
     let res = yield when.we_invoke_get_index();
 
     expect(res.statusCode).to.equal(200);
@@ -23,5 +21,7 @@ describe(`When we invoke the GET / endpoint`, co.wrap(function* () {
     let $ = cheerio.load(res.body);
     let restaurants = $('.restaurant', '#restaurantsUl');
     expect(restaurants.length).to.equal(8);
+    
   }));
+  
 }));

@@ -5,7 +5,7 @@
     "main": "index.js",
     "scripts": {
         "integration-test": "cross-env TEST_MODE=handler ./node_modules/.bin/mocha tests/test_cases --reporter spec  --retries 3 --timeout 10000",
-        "acceptance-test": "cross-env TEST_MODE=http TEST_ROOT=https://1kkc3zmmvf.execute-api.us-east-1.amazonaws.com/dev ./node_modules/.bin/mocha tests/test_cases --reporter spec --retries 3 --timeout 10000",
+        "acceptance-test": "cross-env TEST_MODE=http TEST_ROOT=https://jd7pkw0jq1.execute-api.us-east-1.amazonaws.com/dev ./node_modules/.bin/mocha tests/test_cases --reporter spec --retries 3 --timeout 10000",
         "start": "./node_modules/.bin/serverless offline -s dev",
         "debug": "SET SLS_DEBUG=* && node --inspect %USERPROFILE%\\AppData\\Roaming\\npm\\node_modules\\serverless\\bin\\serverless offline -s dev"
     },
@@ -22,6 +22,7 @@
         "cross-env": "^7.0.2",
         "loadsh": "0.0.4",
         "lodash": "^4.17.19",
+        "middy": "^0.10.10",
         "mocha": "^8.0.1",
         "mustache": "^4.0.1",
         "serverless-iam-roles-per-function": "^2.0.2",
@@ -32,6 +33,7 @@
     "devDependencies": {
         "@types/node": "^14.0.20",
         "serverless": "^1.74.1",
-        "serverless-offline": "^6.4.0"
+        "serverless-offline": "^6.4.0",
+        "serverless-sam": "0.0.3"
     }
 }

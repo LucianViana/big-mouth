@@ -1,11 +1,15 @@
 'use strict';
 
-const co = require('co');
-const AWS = require('aws-sdk');
+const co       = require('co');
+const AWS      = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const log      = require('../lib/log');
+
+const middy         = require('middy');
+const sampleLogging = require('../middleware/sample-logging');
 
 const defaultResults = process.env.defaultResults || 8;
-const tableName = process.env.restaurants_table;
+const tableName      = process.env.restaurants_table;
 
 function* getRestaurants(count) {
   let req = {
@@ -17,8 +21,10 @@ function* getRestaurants(count) {
   return resp.Items;
 }
 
-module.exports.handler = co.wrap(function* (event, context, cb) {
+const handler = co.wrap(function* (event, context, cb) {
   let restaurants = yield getRestaurants(defaultResults);
+  log.debug(`loaded ${restaurants.length} restaurants`);
+
   let response = {
     statusCode: 200,
     body: JSON.stringify(restaurants)
@@ -26,3 +32,6 @@ module.exports.handler = co.wrap(function* (event, context, cb) {
 
   cb(null, response);
 });
+
+module.exports.handler = middy(handler)
+  .use(sampleLogging({ sampleRate: 0.01 }));

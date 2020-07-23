@@ -8,8 +8,8 @@ const given = require('../steps/given');
 const tearDown = require('../steps/tearDown');
 
 describe(`Given an authenticated user`, co.wrap(function* () {
-  let user = "root";
-  //TODO: NAO FUNCIONOU A CRIACAO E EXCLUSAO DE UM USUARIO TEMPORARIO PARA OS TESTES NAO DEIXAR SETADO O USUARIO PARA O GIT.
+  let user = "luciano";
+ //TODO: NAO FUNCIONOU A CRIACAO E EXCLUSAO DE UM USUARIO TEMPORARIO PARA OS TESTES NAO DEIXAR SETADO O USUARIO PARA O GIT.
   //before(co.wrap(function* () {
   //  yield init();
   //  user = yield given.an_authenticated_user();
@@ -20,10 +20,7 @@ describe(`Given an authenticated user`, co.wrap(function* () {
   //}));
 
   describe(`When we invoke the POST /restaurants/search endpoint with theme 'cartoon'`, co.wrap(function* () {
-  
     it(`Should return an array of 4 restaurants`, co.wrap(function* () {
-      this.timeout(10000);
-  
       let res = yield when.we_invoke_search_restaurants(user, 'cartoon');
   
       expect(res.statusCode).to.equal(200);
@@ -34,6 +31,6 @@ describe(`Given an authenticated user`, co.wrap(function* () {
         expect(restaurant).to.have.property('image');
       }
     }));
-  })); 
+  }));  
 }));
 
