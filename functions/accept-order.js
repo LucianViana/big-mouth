@@ -1,14 +1,13 @@
 'use strict';
 
 const co         = require('co');
-const AWS        = require('aws-sdk');
-const kinesis    = new AWS.Kinesis();
-const log        = require('../lib/log');
+const kinesis    = require('../lib/kinesis');
+const streamName = process.env.order_events_stream;
 
 const middy         = require('middy');
 const sampleLogging = require('../middleware/sample-logging');
+const captureCorrelationIds = require('../middleware/capture-correlation-ids');
 
-const streamName = process.env.order_events_stream;
 
 const handler = co.wrap(function* (event, context, cb) {
   let req = JSON.parse(event.body);
@@ -33,7 +32,10 @@ const handler = co.wrap(function* (event, context, cb) {
     StreamName: streamName
   };
 
-  yield kinesis.putRecord(kinesisReq).promise();
+  yield cloudwatch.trackExecTime(
+    "KinesisPutRecordLatency",
+    () => kinesis.putRecord(kinesisReq).promise()
+  );
 
   log.debug(`published event into Kinesis`, { eventName: 'order_accepted' });
 
@@ -46,4 +48,5 @@ const handler = co.wrap(function* (event, context, cb) {
 });
 
 module.exports.handler = middy(handler)
+  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
   .use(sampleLogging({ sampleRate: 0.01 }));

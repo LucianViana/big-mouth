@@ -27,6 +27,8 @@ const handler = co.wrap(function* (event, context, cb) {
     log.warn('failed to notify restaurant of new order', logContext, err);
     
     cb(err);
+  } finally {
+    cloudwatch.incrCount("NotifyRestaurantRetried");
   }
 });
 

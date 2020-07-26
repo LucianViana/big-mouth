@@ -1,16 +1,19 @@
 'use strict';
 
-const co       = require("co");
-const Promise  = require("bluebird");
-const fs       = Promise.promisifyAll(require("fs"));
-const Mustache = require('mustache');
-const http     = require('superagent-promise')(require('superagent'), Promise);
-const URL      = require('url');
-const aws4     = require('../lib/aws4');
-const log      = require('../lib/log');
+const co         = require("co");
+const Promise    = require("bluebird");
+const fs         = Promise.promisifyAll(require("fs"));
+const Mustache   = require('mustache');
+const http       = require('../lib/http');
+const URL        = require('url');
+const aws4       = require('../lib/aws4');
+const log        = require('../lib/log');
+const cloudwatch = require('../lib/cloudwatch');
+const AWSXRay    = require('aws-xray-sdk');
 
 const middy         = require('middy');
 const sampleLogging = require('../middleware/sample-logging');
+const correlationIds = require('../middleware/capture-correlation-ids');
 
 const awsRegion          = process.env.AWS_REGION;
 const cognitoUserPoolId  = process.env.cognito_user_pool_id;
@@ -39,17 +42,36 @@ function* getRestaurants() {
 
   aws4.sign(opts);
 
-  let httpReq = http
-    .get(restaurantsApiRoot)
-    .set('Host', opts.headers['Host'])
-    .set('X-Amz-Date', opts.headers['X-Amz-Date'])
-    .set('Authorization', opts.headers['Authorization']);
+  let httpReq = http({
+    uri: restaurantsApiRoot,
+    headers: opts.headers
+  });
+  
+  return new Promise((resolve, reject) => {
+    let f = co.wrap(function* (subsegment) {
+      if (subsegment) {
+        subsegment.addMetadata('url', restaurantsApiRoot);  
+      }
 
-  if (opts.headers['X-Amz-Security-Token']) {
-    httpReq.set('X-Amz-Security-Token', opts.headers['X-Amz-Security-Token']);
-  }
+      try {
+        let body = (yield httpReq).body;
+        if (subsegment) {
+          subsegment.close();
+        }
+        resolve(body);
+      } catch (err) {
+        if (subsegment) {
+          subsegment.close(err);
+        }
+        reject(err);
+      }
+    });
 
-  return (yield httpReq).body;
+    // the current sub/segment
+    let segment = AWSXRay.getSegment();
+
+    AWSXRay.captureAsyncFunc("getting restaurants", f, segment);
+  });
 }
 
 const handler = co.wrap(function* (event, context, callback) {
@@ -58,7 +80,10 @@ const handler = co.wrap(function* (event, context, callback) {
   let template = yield loadHtml();
   log.debug("loaded HTML template");
 
-  let restaurants = yield getRestaurants();
+  let restaurants = yield cloudwatch.trackExecTime(
+    "GetRestaurantsLatency",
+    () => getRestaurants()
+  );
   log.debug(`loaded ${restaurants.length} restaurants`);
 
   let dayOfWeek = days[new Date().getDay()];
@@ -74,6 +99,8 @@ const handler = co.wrap(function* (event, context, callback) {
   let html = Mustache.render(template, view);
   log.debug(`rendered HTML [${html.length} bytes]`);
 
+  cloudwatch.incrCount('RestaurantsReturned', restaurants.length);
+
   const response = {
     statusCode: 200,
     body: html,
@@ -86,4 +113,5 @@ const handler = co.wrap(function* (event, context, callback) {
 });
 
 module.exports.handler = middy(handler)
+  .use(correlationIds({ sampleDebugLogRate: 0.9 }))
   .use(sampleLogging({ sampleRate: 0.01 }));

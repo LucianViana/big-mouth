@@ -11,12 +11,13 @@ let init = co.wrap(function* () {
     return;
   }
 
-  process.env.restaurants_api = "https://jd7pkw0jq1.execute-api.us-east-1.amazonaws.com/dev/restaurants";
+  process.env.restaurants_api = "https://8kbasri6v6.execute-api.us-east-1.amazonaws.com/dev/restaurants";
   process.env.restaurants_table = "restaurants";
   process.env.AWS_REGION = "us-east-1";
-  process.env.cognito_client_id = "7br7vfeet8pqlc1lqgj34j1g6l";
-  process.env.cognito_user_pool_id = "us-east-1_92XbyMCWD";
-  process.env.cognito_server_client_id = "2dtu4ib1oq2pr1vii9lr8uiujb";
+  process.env.cognito_client_id = "test_cognito_client_id";
+  process.env.cognito_user_pool_id = "us-east-1_DfuAwa0vB";
+  process.env.cognito_server_client_id = "niv7esuaibla0tj5q36b6mvnr";
+  process.env.AWS_XRAY_CONTEXT_MISSING = "LOG_ERROR";
 
   yield aws4.init();
 
