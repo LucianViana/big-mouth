@@ -1,17 +1,18 @@
 'use strict';
 
-const _          = require('lodash');
-const co         = require('co');
-const kinesis    = require('../lib/kinesis');
-const chance     = require('chance').Chance();
-const log        = require('../lib/log');
-const cloudwatch = require('../lib/cloudwatch');
-const correlationIds  = require('../lib/correlation-ids');
-const streamName = process.env.order_events_stream;
+const _              = require('lodash');
+const co             = require('co');
+const kinesis        = require('../lib/kinesis');
+const chance         = require('chance').Chance();
+const log            = require('../lib/log');
+const cloudwatch     = require('../lib/cloudwatch');
+const correlationIds = require('../lib/correlation-ids');
 
 const middy         = require('middy');
 const sampleLogging = require('../middleware/sample-logging');
 const captureCorrelationIds = require('../middleware/capture-correlation-ids');
+
+const streamName = process.env.order_events_stream;
 
 const UNAUTHORIZED = {
   statusCode: 401,
@@ -32,11 +33,12 @@ const handler = co.wrap(function* (event, context, cb) {
 
   let restaurantName = req.restaurantName;
   let orderId = chance.guid();
-  log.debug(`placing order...`, { orderId, restaurantName, userEmail });
 
   correlationIds.set('order-id', orderId);
-  correlationIds.set(' restaurant-name', restaurantName);
+  correlationIds.set('restaurant-name', restaurantName);
   correlationIds.set('user-email', userEmail);
+
+  log.debug(`placing order...`, { orderId, restaurantName, userEmail });
 
   let data = {
     orderId,
@@ -65,7 +67,6 @@ const handler = co.wrap(function* (event, context, cb) {
 
   cb(null, response);
 });
-
 
 module.exports.handler = middy(handler)
   .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
