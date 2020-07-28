@@ -69,5 +69,5 @@ const handler = co.wrap(function* (event, context, cb) {
 });
 
 module.exports.handler = middy(handler)
-  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
+  .use(captureCorrelationIds({ sampleDebugLogRate: 0.9 }))
   .use(sampleLogging({ sampleRate: 0.01 }));
