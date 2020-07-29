@@ -10,17 +10,14 @@ const aws4       = require('../lib/aws4');
 const log        = require('../lib/log');
 const cloudwatch = require('../lib/cloudwatch');
 const AWSXRay    = require('aws-xray-sdk');
+const STAGE      = process.env.STAGE;
 
 const middy         = require('middy');
+const {ssm, secretsManager}         = require('middy/middlewares');
 const sampleLogging = require('../middleware/sample-logging');
 const correlationIds = require('../middleware/capture-correlation-ids');
 
 const awsRegion          = process.env.AWS_REGION;
-const cognitoUserPoolId  = process.env.cognito_user_pool_id;
-const cognitoClientId    = process.env.cognito_client_id;
-const restaurantsApiRoot = process.env.restaurants_api;
-const ordersApiRoot      = process.env.orders_api;
-
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 var html;
@@ -33,7 +30,7 @@ function* loadHtml() {
   return html;
 }
 
-function* getRestaurants() {
+function* getRestaurants(restaurantsApiRoot) {
   let url = URL.parse(restaurantsApiRoot);
   let opts = {
     host: url.hostname,
@@ -82,7 +79,7 @@ const handler = co.wrap(function* (event, context, callback) {
 
   let restaurants = yield cloudwatch.trackExecTime(
     "GetRestaurantsLatency",
-    () => getRestaurants()
+    () => getRestaurants(context.restaurants_api)
   );
   log.debug(`loaded ${restaurants.length} restaurants`);
 
@@ -91,10 +88,10 @@ const handler = co.wrap(function* (event, context, callback) {
     dayOfWeek, 
     restaurants,
     awsRegion,
-    cognitoUserPoolId,
-    cognitoClientId,
-    searchUrl: `${restaurantsApiRoot}/search`,
-    placeOrderUrl: `${ordersApiRoot}`
+    cognitoUserPoolId: context.cognito.user_pool_id,
+    cognitoClientId: context.cognito.client_id,
+    searchUrl: `${context.restaurants_api}/search`,
+    placeOrderUrl: `${context.orders_api}`
   };
   let html = Mustache.render(template, view);
   log.debug(`rendered HTML [${html.length} bytes]`);
@@ -114,4 +111,23 @@ const handler = co.wrap(function* (event, context, callback) {
 
 module.exports.handler = middy(handler)
   .use(correlationIds({ sampleDebugLogRate: 0.9 }))
-  .use(sampleLogging({ sampleRate: 0.01 }));
+  .use(sampleLogging({ sampleRate: 0.01 }))
+  .use(ssm({
+    cache: true,
+    cacheExpiryInMillis: 3 * 60 * 1000,
+    setToContext: true,
+    names:  {
+      restaurants_api: `/bigmouth/${STAGE}/restaurants_api`,
+      orders_api: `/bigmouth/${STAGE}/orders_api`,
+      cognito_user_pool_id: `/bigmouth/${STAGE}/cognito_user_pool_id`,
+      cognito_client_id: `/bigmouth/${STAGE}/cognito_client_id`
+    }
+
+  }))
+.use(secretsManager({
+  cache: true,
+  cacheExpiryInMillis: 3 * 60 * 1000,
+  secrets: {
+     cognito: `/bigmouth/${STAGE}/cognito`
+  } 
+  }));

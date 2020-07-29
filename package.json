@@ -23,7 +23,7 @@
         "cross-env": "^7.0.2",
         "loadsh": "0.0.4",
         "lodash": "^4.17.19",
-        "middy": "^0.10.10",
+        "middy": "^0.36.0",
         "mocha": "^8.0.1",
         "mustache": "^4.0.1",
         "serverless-iam-roles-per-function": "^2.0.2",

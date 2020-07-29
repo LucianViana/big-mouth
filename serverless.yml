@@ -39,16 +39,18 @@ functions:
           path: /
           method: get
     environment:
-      restaurants_api: https://jd7pkw0jq1.execute-api.us-east-1.amazonaws.com/dev/restaurants
-      orders_api: https://jd7pkw0jq1.execute-api.us-east-1.amazonaws.com/dev/orders
-      cognito_user_pool_id: us-east-1_92XbyMCWD
-      cognito_client_id: 7br7vfeet8pqlc1lqgj34j1g6l
       async_metrics: true
     #iamRoleStatementsInherit: true #optionally inherit shared permissions
     iamRoleStatements:
       - Effect: Allow
         Action: execute-api:Invoke
         Resource: arn:aws:execute-api:#{AWS::Region}:#{AWS::AccountId}:*/*/GET/restaurants
+      - Effect: Allow
+        Action: ssm:GetParameters
+        Resource: arn:aws:ssm:#{AWS::Region}:#{AWS::AccountId}:parameter/bigmouth/${self:custom.stage}/*
+      - Effect: Allow
+        Action: secretsmanager:GetSecretValue
+        Resource: arn:aws:secretsmanager:#{AWS::Region}:#{AWS::AccountId}:secret:/bigmouth/${self:custom.stage}/*
 
   get-restaurants:
     handler: functions/get-restaurants.handler
@@ -72,7 +74,7 @@ functions:
           path: /restaurants/search
           method: post
           authorizer:
-            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_92XbyMCWD
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/${ssm:/bigmouth/${self:custom.stage}/cognito_user_pool_id}
     environment:
       restaurants_table: restaurants
       async_metrics: true
@@ -88,7 +90,7 @@ functions:
           path: /orders
           method: post
           authorizer:
-            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/us-east-1_92XbyMCWD
+            arn: arn:aws:cognito-idp:#{AWS::Region}:#{AWS::AccountId}:userpool/${ssm:/bigmouth/${self:custom.stage}/cognito_user_pool_id}
     environment:
       order_events_stream: order-events
       async_metrics: true
