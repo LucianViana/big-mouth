@@ -4,9 +4,7 @@ const co         = require('co');
 const kinesis    = require('../lib/kinesis');
 const streamName = process.env.order_events_stream;
 
-const middy         = require('middy');
-const sampleLogging = require('../middleware/sample-logging');
-const captureCorrelationIds  = require('../middleware/capture-correlation-ids');
+const wrapper = require('../middleware/wrapper');
 
 const handler = co.wrap(function* (event, context, cb) {
   let body = JSON.parse(event.body);
@@ -46,5 +44,4 @@ const handler = co.wrap(function* (event, context, cb) {
   cb(null, response);
 });
 
-module.exports.handler = middy(handler)
-  .use(sampleLogging({ sampleRate: 0.01 }));
+module.exports.handler = wrapper(handler)

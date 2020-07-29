@@ -5,10 +5,9 @@ const notify     = require('../lib/notify');
 const log        = require('../lib/log');
 const cloudwatch = require('../lib/cloudwatch');
 
-const middy         = require('middy');
-const sampleLogging = require('../middleware/sample-logging');
+const wrapper = require('../middleware/wrapper');
+
 const flushMetrics  = require('../middleware/flush-metrics');
-const captureCorrelationIds = require('../middleware/capture-correlation-ids');
 
 const handler = co.wrap(function* (event, context, cb) {
   let order = JSON.parse(event.Records[0].Sns.Message);
@@ -33,7 +32,5 @@ const handler = co.wrap(function* (event, context, cb) {
   }
 });
 
-module.exports.handler = middy(handler)
-  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
-  .use(sampleLogging({ sampleRate: 0.01 }))
+module.exports.handler = wrapper(handler)
   .use(flushMetrics);

@@ -12,13 +12,12 @@ const cloudwatch = require('../lib/cloudwatch');
 const AWSXRay    = require('aws-xray-sdk');
 const STAGE      = process.env.STAGE;
 
-const middy         = require('middy');
 const {ssm, secretsManager}         = require('middy/middlewares');
-const sampleLogging = require('../middleware/sample-logging');
-const correlationIds = require('../middleware/capture-correlation-ids');
 
 const awsRegion          = process.env.AWS_REGION;
 const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+const wrapper = require('../middleware/wrapper');
 
 var html;
 
@@ -109,9 +108,7 @@ const handler = co.wrap(function* (event, context, callback) {
   callback(null, response);
 });
 
-module.exports.handler = middy(handler)
-  .use(correlationIds({ sampleDebugLogRate: 0.9 }))
-  .use(sampleLogging({ sampleRate: 0.01 }))
+module.exports.handler = wrapper(handler)
   .use(ssm({
     cache: true,
     cacheExpiryInMillis: 3 * 60 * 1000,

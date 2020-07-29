@@ -21,6 +21,7 @@ provider:
   environment:
     log_level: ${self:custom.logLevel.${self:custom.stage}, self:custom.logLevel.default}
     STAGE: ${self:custom.stage}
+    FUNCTION_SHIELD_TOKEN: ${ssm:/bigmouth/${self:custom.stage}/function_shield_token~true}
   iamRoleStatements:
     - Effect: Allow
       Action: cloudwatch:PutMetricData
@@ -31,6 +32,7 @@ provider:
         - "xray:PutTelemetryRecords"
       Resource:
         - "*"
+
 functions:
   get-index:
     handler: functions/get-index.handler

@@ -8,9 +8,7 @@ const log            = require('../lib/log');
 const cloudwatch     = require('../lib/cloudwatch');
 const correlationIds = require('../lib/correlation-ids');
 
-const middy         = require('middy');
-const sampleLogging = require('../middleware/sample-logging');
-const captureCorrelationIds = require('../middleware/capture-correlation-ids');
+const wrapper = require('../middleware/wrapper');
 
 const streamName = process.env.order_events_stream;
 
@@ -68,6 +66,4 @@ const handler = co.wrap(function* (event, context, cb) {
   cb(null, response);
 });
 
-module.exports.handler = middy(handler)
-  .use(captureCorrelationIds({ sampleDebugLogRate: 0.9 }))
-  .use(sampleLogging({ sampleRate: 0.01 }));
+module.exports.handler = wrapper(handler)

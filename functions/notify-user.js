@@ -6,9 +6,8 @@ const Kinesis    = require('../lib/kinesis');
 const sns        = require('../lib/sns');
 const streamName = process.env.order_events_stream;
 const topicArn   = process.env.user_notification_topic;
-const sampleLogging = require('../middleware/sample-logging');
 const flushMetrics  = require('../middleware/flush-metrics');
-const captureCorrelationIds = require('../middleware/capture-correlation-ids');
+const wrapper = require('../middleware/wrapper');
 
 const handler = co.wrap(function* (event, context, cb) {
   let events = context.parseKinesisEvents;
@@ -41,7 +40,5 @@ const handler = co.wrap(function* (event, context, cb) {
   cb(null, "all done");
 });
 
-module.exports.handler = middy(handler)
-  .use(captureCorrelationIds({ sampleDebugLogRate: 0.01 }))
-  .use(sampleLogging({ sampleRate: 0.01 }))
+module.exports.handler = wrapper(handler)
   .use(flushMetrics);
