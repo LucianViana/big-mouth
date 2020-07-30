@@ -6,6 +6,8 @@ plugins:
   - serverless-iam-roles-per-function
   - serverless-plugin-tracing
   - serverless-offline
+  - serverless-plugin-canary-deployments
+  - serverless-plugin-aws-alerts
 custom: 
   stage: ${opt:stage, self:provider.stage}
   logLevel:
@@ -13,6 +15,15 @@ custom:
     default: INFO
   serverless-iam-roles-per-function:
     defaultInherit: true
+  alerts:
+    stages:
+      - dev
+      - staging
+      - production
+    dashboards: false
+    alarms:
+      - functionThrottles
+      - functionErrors
 
 provider:
   name: aws
@@ -32,6 +43,11 @@ provider:
         - "xray:PutTelemetryRecords"
       Resource:
         - "*"
+    - Effect: Allow
+      Action:
+        - codedeploy:*
+      Resource:
+        - '*'  
 
 functions:
   get-index:
@@ -42,6 +58,13 @@ functions:
           method: get
     environment:
       async_metrics: true
+    deploymentSettings:
+      type: Linear10PercentEvery1Minute
+      alias: Live
+      alarms:
+        - GetDashindexFunctionErrorsAlarm
+
+      
     #iamRoleStatementsInherit: true #optionally inherit shared permissions
     iamRoleStatements:
       - Effect: Allow

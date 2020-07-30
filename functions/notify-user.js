@@ -10,7 +10,7 @@ const flushMetrics  = require('../middleware/flush-metrics');
 const wrapper = require('../middleware/wrapper');
 
 const handler = co.wrap(function* (event, context, cb) {
-  let events = context.parseKinesisEvents;
+  let events = context.parsedKinesisEvents;
   let orderAccepted = events.filter(r => r.eventType === 'order_accepted');
 
   for (let order of orderAccepted) {

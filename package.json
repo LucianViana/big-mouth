@@ -35,6 +35,8 @@
         "@types/node": "^14.0.20",
         "serverless": "^1.74.1",
         "serverless-offline": "^6.4.0",
+        "serverless-plugin-aws-alerts": "^1.6.1",
+        "serverless-plugin-canary-deployments": "^0.4.8",
         "serverless-plugin-tracing": "^2.0.0",
         "serverless-sam": "0.0.3"
     }
