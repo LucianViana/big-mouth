@@ -33,7 +33,7 @@
     },
     "devDependencies": {
         "@types/node": "^14.0.20",
-        "serverless": "^1.74.1",
+        "serverless": "^3.25.1",
         "serverless-offline": "^6.4.0",
         "serverless-plugin-aws-alerts": "^1.6.1",
         "serverless-plugin-canary-deployments": "^0.4.8",
